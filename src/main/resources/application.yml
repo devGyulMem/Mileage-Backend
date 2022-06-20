@@ -1,0 +1,54 @@
+spring:
+  profiles:
+    group:
+      default: "devmem,common"
+---
+spring:
+  config:
+    profile:
+      name: devmem
+    activate:
+      on-profile: devmem
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://34.64.212.75:3306/mileage_mysql?serverTimezone=UTC
+    username:
+    password:
+    hikari:
+      maximum-pool-size: 4
+  jpa:
+    properties:
+      hibernate:
+        default_schema: dev
+  url:
+    base: http://localhost:8080
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+---
+spring:
+  config:
+    activate:
+      on-profile: common
+  servlet:
+    multipart:
+      maxFileSize: 3000MB
+      maxRequestSize: 3000MB
+  jpa:
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    generate-ddl: true
+    open-in-view: false
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        generate_statistics: false
+        use_sql_comments: true
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
+server:
+  port: 8080
