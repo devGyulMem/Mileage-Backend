@@ -1,5 +1,13 @@
 # 마일리지 적립 서비스
 
+## 기술 스택
+- Spring boot 2.7.0
+- Java
+- JDK 17
+- JPA
+- Swagger 3.0
+- GCP SQL
+
 ## 실행 방법
 
 ### 1. IDE 에서 프로젝트 open
