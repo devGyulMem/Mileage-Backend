@@ -7,5 +7,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface MileageUserRepo extends JpaRepository<MileageUser, Integer> {
-    Optional<MileageUser> findByUserId(UUID userId);
+    MileageUser findByUserId(UUID userId);
 }

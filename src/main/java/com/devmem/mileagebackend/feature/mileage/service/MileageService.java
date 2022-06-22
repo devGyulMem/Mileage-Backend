@@ -32,7 +32,12 @@ public class MileageService {
 
         long newPoints = calculatePoints(request, reviewHistory == null);
 
-        MileageUser mileageUser = mileageUserRepo.findByUserId(request.getUserId()).orElseThrow(()->new Exception("Exception :: Cannot find mileage user"));
+        MileageUser mileageUser = mileageUserRepo.findByUserId(request.getUserId());
+
+        if(mileageUser == null){
+            mileageUser = MileageUser.builder().userId(request.getUserId()).build();
+        }
+
         mileageUser.setMileage(mileageUser.getMileage() + newPoints);
         mileageUserRepo.save(mileageUser);
 
@@ -94,7 +99,7 @@ public class MileageService {
         mileageUser.setMileage(mileageUser.getMileage() - latestData.getPoints());
         // createHistory로 "리뷰 삭제" 명목으로 히스토리 추가
         // TODO reviewByPlace가 아예 비게 되면 컬럼 자체를 삭제하는 로직 필요
-        createMileageHistory(request.getUserId(), request.getPlaceId(), request.getReviewId(), request.getAction(),"리뷰 삭제 마일리지 반환", recentData.getPoints() * (-1) );
+        createMileageHistory(request.getUserId(), request.getPlaceId(), request.getReviewId(), request.getAction(),"리뷰 삭제 마일리지 반환", latestData.getPoints() * (-1) );
 
         return result;
     }
