@@ -38,15 +38,18 @@ public class MileageService {
         reviewHistoryRepo.findByReviewId(request.getReviewId()).ifPresent(review -> { throw new ResponseException("같은 review id가 있어 리뷰를 더이상 작성할 수 없습니다.(already exist)", "01"); });
         reviewHistoryRepo.findByPlaceIdAndUserId(request.getPlaceId(), request.getUserId()).ifPresent(review -> { throw new ResponseException("해당 장소에 이미 작성한 리뷰가 있습니다.", "01"); });
         
+        // 첫리뷰 검증
         List<ReviewHistory> reviewHistory = reviewHistoryRepo.findAllByPlaceId(request.getPlaceId());
 
+        // 점수 산정
         long newPoints = calculatePoints(request, reviewHistory.isEmpty());
 
+        // 저장
         MileageUser mileageUser = mileageUserRepo.findByUserId(request.getUserId()).orElse(MileageUser.builder().userId(request.getUserId()).build());
-
         mileageUser.setMileage(mileageUser.getMileage() + newPoints);
         mileageUserRepo.save(mileageUser);
 
+        // reviewId, placeId, 첫번째 리뷰 여부 저장
         ReviewHistory newReviewHistory = ReviewHistory.builder()
                 .placeId(request.getPlaceId())
                 .reviewId(request.getReviewId())
@@ -72,22 +75,23 @@ public class MileageService {
         // 유저 정보를 찾음
         MileageUser mileageUser = mileageUserRepo.findByUserId(request.getUserId()).orElseThrow(()->new ResponseException("유저 정보를 찾을 수 없습니다.", "01"));
 
-        // ReviewByPlace 에서 첫리뷰인지 확인
+        // 첫 리뷰인지 확인
         ReviewHistory reviewHistory = reviewHistoryRepo.findByReviewId(request.getReviewId()).orElseThrow(()-> new ResponseException("수정할 리뷰를 찾을 수 없습니다.", "01"));
 
-        MileageHistory latestData = mileageHistoryRepo.findFirstByReviewIdOrderByRegDtmDesc(request.getReviewId()).orElseThrow(()->new ResponseException("이전 기록을 찾을 수 없습니다.", "01"));
+        // 가장 최근에 적립된 기록을 찾음
+        MileageHistory latestData = mileageHistoryRepo.findFirstByReviewIdOrderByMileageHistoryIdDesc(request.getReviewId()).orElseThrow(()->new ResponseException("이전 기록을 찾을 수 없습니다.", "01"));
 
         long newPoints = calculatePoints(request, reviewHistory.getIsFirstReview());
 
         mileageUser.setMileage(mileageUser.getMileage() - latestData.getPoints() + newPoints);
         mileageUserRepo.save(mileageUser);
 
-        // history 에서 -points1 + poinst2 계산하여 저장, 내용 : "리뷰 수정 마일리지 적립/반환"
-        createMileageHistory(request.getUserId(), request.getPlaceId(), request.getReviewId(), request.getAction(), "리뷰 수정 마일리지 반환", latestData.getPoints());
+        // 이전 적립을 반환 후 새 포인트 부여
+        createMileageHistory(request.getUserId(), request.getPlaceId(), request.getReviewId(), request.getAction(), "리뷰 수정 마일리지 반환", latestData.getPoints() * (-1));
         createMileageHistory(request.getUserId(), request.getPlaceId(), request.getReviewId(), request.getAction(), "리뷰 수정 마일리지 적립", newPoints);
   
         result.put("rsltCd", "00");
-        result.put("resltMsg", "Success");
+        result.put("resltMsg", "Success - 리뷰 수정 : 마일리지 재적립");
         result.put("mileageUser", MileageUserDto.Response.of(mileageUser));
         return result;
     }
@@ -99,23 +103,20 @@ public class MileageService {
 
         MileageUser mileageUser = mileageUserRepo.findByUserId(request.getUserId()).orElseThrow(()->new ResponseException("수정한 리뷰의 유저 마일리지 정보를 찾을 수 없습니다.", "01"));
 
-        // 리뷰 ID를 통해 history 에서 조회하여 몇 포인트를 부여받았는지 가져온다.
-        MileageHistory latestData = mileageHistoryRepo.findFirstByReviewIdOrderByRegDtmDesc(request.getReviewId()).orElseThrow(()-> new ResponseException("수정한 리뷰의 유저 마일리지의 정보를 찾을 수 없습니다.", "01"));
+        MileageHistory latestData = mileageHistoryRepo.findFirstByReviewIdOrderByMileageHistoryIdDesc(request.getReviewId()).orElseThrow(()-> new ResponseException("수정한 리뷰의 유저 마일리지의 정보를 찾을 수 없습니다.", "01"));
 
-        // mileageUser에서 현재의 mileage를 가져온 후 -points
         mileageUser.setMileage(mileageUser.getMileage() - latestData.getPoints());
-        // createHistory로 "리뷰 삭제" 명목으로 히스토리 추가
-        // reviewByPlace가 아예 비게 되면 컬럼 자체를 삭제하는 로직 필요
         ReviewHistory reviewHistory = reviewHistoryRepo.findByReviewId(request.getReviewId()).orElseThrow(() -> new ResponseException("삭제할 리뷰 내역을 찾을 수 없습니다.", "01"));
         reviewHistoryRepo.delete(reviewHistory);
 
         createMileageHistory(request.getUserId(), request.getPlaceId(), request.getReviewId(), request.getAction(),"리뷰 삭제 마일리지 반환", latestData.getPoints() * (-1) );
         
         result.put("rsltCd", "00");
-        result.put("resltMsg", "Success - 리뷰 삭제 완료");
+        result.put("resltMsg", "Success - 리뷰 삭제 : 마일리지 반환");
         result.put("mileageUser", MileageUserDto.Response.of(mileageUser));
         return result;
     }
+
 
     @Transactional(rollbackOn = Exception.class)
     public ResponseMap createMileageHistory(UUID userId, UUID placeId, UUID reviewId,  String action, String content, long points){
@@ -138,6 +139,9 @@ public class MileageService {
         return result;
     }
 
+    /**
+     * getMileageUser() : 전체 사용자의 마일리지 정보를 반환합니다.
+     * */
     @Transactional(rollbackOn = Exception.class)
     public ResponseMap getMileageUser(){
 
@@ -151,6 +155,10 @@ public class MileageService {
         return result;
     }
 
+
+    /**
+     * getMileageHistory() : 전체 마일리지 내역을 조회합니다.
+     * */
     @Transactional(rollbackOn = Exception.class)
     public ResponseMap getMileageHistory(){
 
@@ -166,6 +174,9 @@ public class MileageService {
         return result;
     }
 
+    /**
+     * getMileageHistory(request) : 특정 사용자의 마일리지 내역을 조회합니다.
+     * */
     @Transactional(rollbackOn = Exception.class)
     public ResponseMap getMileageHistory(MileageHistoryDto.HistoryRequest request){
 

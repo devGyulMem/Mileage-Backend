@@ -9,6 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.devmem.mileagebackend.feature.mileage.domain.MileageHistory;
 
 public interface MileageHistoryRepo extends JpaRepository<MileageHistory, Integer> {
-    Optional<MileageHistory> findFirstByReviewIdOrderByRegDtmDesc(UUID reviewId);
+    Optional<MileageHistory> findFirstByReviewIdOrderByMileageHistoryIdDesc(UUID reviewId);
     List<MileageHistory> findAllByUserId(UUID userId);
 }

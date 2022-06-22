@@ -28,7 +28,6 @@ public class MileageController {
     @ApiOperation(value = "마일리지 적립")
     @PostMapping("/events")
     public ResponseMap manageMileage(@RequestBody MileageDto.Request request) throws Throwable{
-        
         String action = request.getAction();
         return action.equals("ADD") ? mileageService.saveMileage(request) : action.equals("MOD") ? mileageService.updateMileage(request) : mileageService.deleteMileage(request);
     }

@@ -18,8 +18,8 @@ import lombok.*;
 public class ReviewHistory {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer reviewByPlaceId;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    private Integer reviewHistoryId;
 
     @Column(columnDefinition = "BINARY(16)")
     private UUID placeId;
