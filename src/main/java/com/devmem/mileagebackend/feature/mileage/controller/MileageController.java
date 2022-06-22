@@ -1,7 +1,5 @@
 package com.devmem.mileagebackend.feature.mileage.controller;
 
-import java.util.UUID;
-
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.devmem.mileagebackend.feature.mileage.dto.MileageDto;
+import com.devmem.mileagebackend.feature.mileage.dto.MileageHistoryDto;
 import com.devmem.mileagebackend.feature.mileage.service.MileageService;
 import com.devmem.mileagebackend.utils.ResponseMap;
 
@@ -33,16 +32,22 @@ public class MileageController {
         String action = request.getAction();
         return action.equals("ADD") ? mileageService.saveMileage(request) : action.equals("MOD") ? mileageService.updateMileage(request) : mileageService.deleteMileage(request);
     }
-
-    @ApiOperation(value = "마일리지 내역조회")
+    
+    @ApiOperation(value = "사용자 마일리지 전체 조회")
     @GetMapping("")
+    public ResponseMap getMileageUser(){
+        return mileageService.getMileageUser();
+    }
+    
+    @ApiOperation(value = "마일리지 내역 전체 조회")
+    @GetMapping("/history")
     public ResponseMap getMileageHistory(){
         return mileageService.getMileageHistory();
     }
     
-    @ApiOperation(value = "마일리지 내역조회")
+    @ApiOperation(value = "사용자 마일리지 내역 조회")
     @PostMapping("")
-    public ResponseMap getMileageUserHistory(@RequestBody UUID userId){
-        return mileageService.getMileageHistory(userId);
+    public ResponseMap getMileageUserHistory( @RequestBody MileageHistoryDto.HistoryRequest request){
+        return mileageService.getMileageHistory(request);
     }
 }

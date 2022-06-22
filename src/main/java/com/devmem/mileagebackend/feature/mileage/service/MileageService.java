@@ -12,6 +12,7 @@ import com.devmem.mileagebackend.feature.mileage.domain.MileageHistory;
 import com.devmem.mileagebackend.feature.mileage.domain.MileageUser;
 import com.devmem.mileagebackend.feature.mileage.domain.ReviewHistory;
 import com.devmem.mileagebackend.feature.mileage.dto.MileageDto;
+import com.devmem.mileagebackend.feature.mileage.dto.MileageHistoryDto;
 import com.devmem.mileagebackend.feature.mileage.dto.MileageUserDto;
 import com.devmem.mileagebackend.feature.mileage.persistence.MileageHistoryRepo;
 import com.devmem.mileagebackend.feature.mileage.persistence.MileageUserRepo;
@@ -34,7 +35,9 @@ public class MileageService {
 
         ResponseMap result = new ResponseMap();
 
-        reviewHistoryRepo.findByReviewId(request.getReviewId()).ifPresent(review -> { throw new ResponseException("리뷰를 더이상 작성할 수 없습니다.(review id already exist)", "01"); });
+        reviewHistoryRepo.findByReviewId(request.getReviewId()).ifPresent(review -> { throw new ResponseException("같은 review id가 있어 리뷰를 더이상 작성할 수 없습니다.(already exist)", "01"); });
+        reviewHistoryRepo.findByPlaceIdAndUserId(request.getPlaceId(), request.getUserId()).ifPresent(review -> { throw new ResponseException("해당 장소에 이미 작성한 리뷰가 있습니다.", "01"); });
+        
         List<ReviewHistory> reviewHistory = reviewHistoryRepo.findAllByPlaceId(request.getPlaceId());
 
         long newPoints = calculatePoints(request, reviewHistory.isEmpty());
@@ -97,7 +100,7 @@ public class MileageService {
         MileageUser mileageUser = mileageUserRepo.findByUserId(request.getUserId()).orElseThrow(()->new ResponseException("수정한 리뷰의 유저 마일리지 정보를 찾을 수 없습니다.", "01"));
 
         // 리뷰 ID를 통해 history 에서 조회하여 몇 포인트를 부여받았는지 가져온다.
-        MileageHistory latestData = mileageHistoryRepo.findFirstByReviewIdOrderByRegDtmDesc(request.getReviewId()).orElseThrow(()-> new ResponseException("수정한 리뷰의 유저 마일리지의 최근 정보를 찾을 수 없습니다.", "01"));
+        MileageHistory latestData = mileageHistoryRepo.findFirstByReviewIdOrderByRegDtmDesc(request.getReviewId()).orElseThrow(()-> new ResponseException("수정한 리뷰의 유저 마일리지의 정보를 찾을 수 없습니다.", "01"));
 
         // mileageUser에서 현재의 mileage를 가져온 후 -points
         mileageUser.setMileage(mileageUser.getMileage() - latestData.getPoints());
@@ -109,7 +112,7 @@ public class MileageService {
         createMileageHistory(request.getUserId(), request.getPlaceId(), request.getReviewId(), request.getAction(),"리뷰 삭제 마일리지 반환", latestData.getPoints() * (-1) );
         
         result.put("rsltCd", "00");
-        result.put("resltMsg", "Success");
+        result.put("resltMsg", "Success - 리뷰 삭제 완료");
         result.put("mileageUser", MileageUserDto.Response.of(mileageUser));
         return result;
     }
@@ -144,7 +147,7 @@ public class MileageService {
 
         result.put("rsltCd", "00");
         result.put("resltMsg", "Success - 사용자 마일리지 정보 조회");
-        result.put("mileageUser", userList);
+        result.put("mileageUser", userList.isEmpty() ? "사용자 마일리지 정보가 없습니다." : userList);
         return result;
     }
 
@@ -154,25 +157,25 @@ public class MileageService {
         ResponseMap result = new ResponseMap();
 
         mileageHistoryRepo.findAll();
-        List<MileageDto.HistoryResponse> historyList = mileageHistoryRepo.findAll().stream().map(MileageDto.HistoryResponse::of).collect(Collectors.toList());
+        List<MileageHistoryDto.HistoryResponse> historyList = mileageHistoryRepo.findAll().stream().map(MileageHistoryDto.HistoryResponse::of).collect(Collectors.toList());
 
         result.put("rsltCd", "00");
         result.put("resltMsg", "Success - 사용자 마일리지 전체 이용 내역 조회");
-        result.put("mileageUser", historyList);
+        result.put("historyList", historyList.isEmpty() ? "이용 내역이 없습니다." : historyList);
         
         return result;
     }
 
     @Transactional(rollbackOn = Exception.class)
-    public ResponseMap getMileageHistory(UUID userId){
+    public ResponseMap getMileageHistory(MileageHistoryDto.HistoryRequest request){
 
         ResponseMap result = new ResponseMap();
 
-        List<MileageDto.HistoryResponse> historyList = mileageHistoryRepo.findAllByUserId(userId).stream().map(MileageDto.HistoryResponse::of).collect(Collectors.toList());
+        List<MileageHistoryDto.HistoryResponse> historyList = mileageHistoryRepo.findAllByUserId(request.getUserId()).stream().map(MileageHistoryDto.HistoryResponse::of).collect(Collectors.toList());
 
         result.put("rsltCd", "00");
         result.put("resltMsg", "Success - 사용자 마일리지 이용 내역 조회");
-        result.put("mileageUser", historyList);
+        result.put("historyList", historyList.isEmpty() ? "이용 내역이 없습니다." : historyList);
         
         return result;
     }

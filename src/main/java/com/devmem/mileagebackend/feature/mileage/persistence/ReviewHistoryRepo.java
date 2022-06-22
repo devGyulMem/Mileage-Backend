@@ -11,4 +11,5 @@ import com.devmem.mileagebackend.feature.mileage.domain.ReviewHistory;
 public interface ReviewHistoryRepo extends JpaRepository<ReviewHistory, Integer> {
     Optional<ReviewHistory> findByReviewId(UUID reviewId);
     List<ReviewHistory> findAllByPlaceId(UUID placeId);
+    Optional<ReviewHistory> findByPlaceIdAndUserId(UUID placeId, UUID userId);
 }
