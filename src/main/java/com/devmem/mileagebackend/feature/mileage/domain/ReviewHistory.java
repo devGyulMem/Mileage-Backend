@@ -14,7 +14,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "tb_review_by_place")
+@Table(name = "tb_review_history")
 public class ReviewHistory {
 
     @Id
@@ -27,12 +27,16 @@ public class ReviewHistory {
     @Column(columnDefinition = "BINARY(16)")
     private UUID reviewId;
 
+    @Column(columnDefinition = "BINARY(16)")
+    private UUID userId;
+
     private Boolean isFirstReview;
 
     @Builder
-    public ReviewHistory(UUID placeId, UUID reviewId, Boolean isFirstReview){
+    public ReviewHistory(UUID placeId, UUID reviewId, UUID userId, Boolean isFirstReview){
         this.placeId = placeId;
         this.reviewId = reviewId;
+        this.userId = userId;
         this.isFirstReview = isFirstReview;
     }
 }

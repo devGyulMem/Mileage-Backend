@@ -24,10 +24,8 @@ public class MileageUserDto {
         public static Response of(MileageUser user){
             
             final Response dto = ObjectMapperUtils.map(user, Response.class);
-            return dto;
-            
+            return dto;   
         }
-
     }
     
 }

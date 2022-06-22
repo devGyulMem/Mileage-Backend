@@ -1,11 +1,12 @@
 package com.devmem.mileagebackend.feature.mileage.persistence;
 
-import com.devmem.mileagebackend.feature.mileage.domain.MileageUser;
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.devmem.mileagebackend.feature.mileage.domain.MileageUser;
+
 public interface MileageUserRepo extends JpaRepository<MileageUser, Integer> {
-    MileageUser findByUserId(UUID userId);
+    Optional<MileageUser> findByUserId(UUID userId);
 }

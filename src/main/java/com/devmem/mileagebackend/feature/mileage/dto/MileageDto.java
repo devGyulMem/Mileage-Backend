@@ -1,7 +1,6 @@
 package com.devmem.mileagebackend.feature.mileage.dto;
 
 import io.swagger.annotations.ApiModelProperty;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,6 +8,9 @@ import lombok.Setter;
 
 import java.util.List;
 import java.util.UUID;
+
+import com.devmem.mileagebackend.feature.mileage.domain.MileageHistory;
+import com.devmem.mileagebackend.utils.ObjectMapperUtils;
 
 public class MileageDto {
 
@@ -37,5 +39,27 @@ public class MileageDto {
 
         @ApiModelProperty(value = "장소 ID", example = "2e4baf1c-5acb-4efb-a1af-eddada31b00f")
         private UUID placeId;
+    }
+
+
+    @Getter
+    @Setter
+    @NoArgsConstructor(access = AccessLevel.PUBLIC)
+    public static class HistoryResponse {
+
+        private String mileageHistoryId;
+        private UUID userId;
+        private UUID placeId;
+        private UUID reviewId;
+        private String action;
+        private String content;
+        private long points;
+
+        public static HistoryResponse of(MileageHistory mileageHistory){
+            
+            final HistoryResponse dto = ObjectMapperUtils.map(mileageHistory, HistoryResponse.class);
+            dto.setMileageHistoryId(mileageHistory.getMileageHistoryId().toString());
+            return dto;
+        }
     }
 }
