@@ -19,7 +19,7 @@ public class MileageHistory extends BastTimeEntity {
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
     @Column(columnDefinition = "BINARY(16)")
-    private UUID historyId;
+    private UUID mileageHistoryId;
 
     @Column(columnDefinition = "BINARY(16)")
     private UUID userId;

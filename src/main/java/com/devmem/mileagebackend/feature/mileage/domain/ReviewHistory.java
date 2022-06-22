@@ -14,12 +14,12 @@ import lombok.*;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "tb_mileage_user")
-public class ReviewByPlace {
+@Table(name = "tb_review_by_place")
+public class ReviewHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer rPId;
+    private Integer reviewByPlaceId;
 
     @Column(columnDefinition = "BINARY(16)")
     private UUID placeId;
@@ -27,9 +27,12 @@ public class ReviewByPlace {
     @Column(columnDefinition = "BINARY(16)")
     private UUID reviewId;
 
+    private Boolean isFirstReview;
+
     @Builder
-    public ReviewByPlace(UUID placeId, UUID reviewId){
+    public ReviewHistory(UUID placeId, UUID reviewId, Boolean isFirstReview){
         this.placeId = placeId;
         this.reviewId = reviewId;
+        this.isFirstReview = isFirstReview;
     }
 }
