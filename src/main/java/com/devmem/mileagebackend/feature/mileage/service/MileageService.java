@@ -30,6 +30,9 @@ public class MileageService {
     private final MileageHistoryRepo mileageHistoryRepo;
     private final ReviewHistoryRepo reviewHistoryRepo;
 
+    /**
+     * saveMileage() : 새 리뷰 작성 마일리지를 적립합니다. 장소에 첫 리뷰에는 보너스 점수를 추가합니다.
+     * */
     @Transactional(rollbackOn = Exception.class)
     public ResponseMap saveMileage(MileageDto.Request request) throws Throwable {
 
@@ -38,13 +41,10 @@ public class MileageService {
         reviewHistoryRepo.findByReviewId(request.getReviewId()).ifPresent(review -> { throw new ResponseException("같은 review id가 있어 리뷰를 더이상 작성할 수 없습니다.(already exist)", "01"); });
         reviewHistoryRepo.findByPlaceIdAndUserId(request.getPlaceId(), request.getUserId()).ifPresent(review -> { throw new ResponseException("해당 장소에 이미 작성한 리뷰가 있습니다.", "01"); });
         
-        // 첫리뷰 검증
-        List<ReviewHistory> reviewHistory = reviewHistoryRepo.findAllByPlaceId(request.getPlaceId());
+        List<ReviewHistory> reviewHistory = reviewHistoryRepo.findAllByPlaceId(request.getPlaceId());  // 첫리뷰 검증
 
-        // 점수 산정
         long newPoints = calculatePoints(request, reviewHistory.isEmpty());
 
-        // 저장
         MileageUser mileageUser = mileageUserRepo.findByUserId(request.getUserId()).orElse(MileageUser.builder().userId(request.getUserId()).build());
         mileageUser.setMileage(mileageUser.getMileage() + newPoints);
         mileageUserRepo.save(mileageUser);
@@ -67,26 +67,24 @@ public class MileageService {
         return result;
     }
 
+    /**
+     * updateMileage() : 리뷰 수정으로 이전에 적립된 포인트를 반환하고 수정된 리뷰의 포인트를 적립합니다.
+     * */
     @Transactional(rollbackOn = Exception.class)
     public ResponseMap updateMileage(MileageDto.Request request) throws Throwable{
 
         ResponseMap result = new ResponseMap();
 
-        // 유저 정보를 찾음
-        MileageUser mileageUser = mileageUserRepo.findByUserId(request.getUserId()).orElseThrow(()->new ResponseException("유저 정보를 찾을 수 없습니다.", "01"));
-
-        // 첫 리뷰인지 확인
         ReviewHistory reviewHistory = reviewHistoryRepo.findByReviewId(request.getReviewId()).orElseThrow(()-> new ResponseException("수정할 리뷰를 찾을 수 없습니다.", "01"));
 
-        // 가장 최근에 적립된 기록을 찾음
         MileageHistory latestData = mileageHistoryRepo.findFirstByReviewIdOrderByMileageHistoryIdDesc(request.getReviewId()).orElseThrow(()->new ResponseException("이전 기록을 찾을 수 없습니다.", "01"));
 
         long newPoints = calculatePoints(request, reviewHistory.getIsFirstReview());
-
+       
+        MileageUser mileageUser = mileageUserRepo.findByUserId(request.getUserId()).orElseThrow(()->new ResponseException("유저 정보를 찾을 수 없습니다.", "01"));
         mileageUser.setMileage(mileageUser.getMileage() - latestData.getPoints() + newPoints);
         mileageUserRepo.save(mileageUser);
 
-        // 이전 적립을 반환 후 새 포인트 부여
         createMileageHistory(request.getUserId(), request.getPlaceId(), request.getReviewId(), request.getAction(), "리뷰 수정 마일리지 반환", latestData.getPoints() * (-1));
         createMileageHistory(request.getUserId(), request.getPlaceId(), request.getReviewId(), request.getAction(), "리뷰 수정 마일리지 적립", newPoints);
   
@@ -96,6 +94,9 @@ public class MileageService {
         return result;
     }
 
+    /**
+     * deleteMileage() : 리뷰 삭제로 마일리지를 반환합니다.
+     * */
     @Transactional(rollbackOn = Exception.class)
     public ResponseMap deleteMileage(MileageDto.Request request)throws Throwable{
 
@@ -117,7 +118,9 @@ public class MileageService {
         return result;
     }
 
-
+     /**
+     * createMileageHistory() : 마일리지 적립 이력을 저장합니다.
+     * */
     @Transactional(rollbackOn = Exception.class)
     public ResponseMap createMileageHistory(UUID userId, UUID placeId, UUID reviewId,  String action, String content, long points){
 
@@ -155,7 +158,6 @@ public class MileageService {
         return result;
     }
 
-
     /**
      * getMileageHistory() : 전체 마일리지 내역을 조회합니다.
      * */
@@ -170,12 +172,11 @@ public class MileageService {
         result.put("rsltCd", "00");
         result.put("resltMsg", "Success - 사용자 마일리지 전체 이용 내역 조회");
         result.put("historyList", historyList.isEmpty() ? "이용 내역이 없습니다." : historyList);
-        
         return result;
     }
 
     /**
-     * getMileageHistory(request) : 특정 사용자의 마일리지 내역을 조회합니다.
+     * getMileageHistory() : 특정 사용자의 마일리지 내역을 조회합니다.
      * */
     @Transactional(rollbackOn = Exception.class)
     public ResponseMap getMileageHistory(MileageHistoryDto.HistoryRequest request){
@@ -187,20 +188,23 @@ public class MileageService {
         result.put("rsltCd", "00");
         result.put("resltMsg", "Success - 사용자 마일리지 이용 내역 조회");
         result.put("historyList", historyList.isEmpty() ? "이용 내역이 없습니다." : historyList);
-        
         return result;
     }
 
+    /**
+     * calculatePoints() : 마일리지 점수를 계산 후 반환합니다.
+     * 1. 리뷰 글자수 1자 이상 - 1점
+     * 2. 사진 수 1개 이상 - 1점
+     * 3. 장소 첫 리뷰 - 1점
+     * */
     public long calculatePoints(MileageDto.Request request, Boolean isFirstReview){
+        
         long totalPoints = 0;
 
-        // 1자 이상 텍스트 : 1점
         if (request.getContent().length() >= 1)
             totalPoints++;
-        // 1장 이상 사진 첨부 : 1점
         if (request.getAttachedPhotoIds().size() >= 1)
             totalPoints++;
-        // 보너스 점수 - 장소에 첫 리뷰 작성 : 1점
         if (isFirstReview)
             totalPoints++;
 
